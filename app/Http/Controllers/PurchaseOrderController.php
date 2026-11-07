@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\PurchaseOrder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderController extends Controller
 {
@@ -21,10 +21,10 @@ class PurchaseOrderController extends Controller
         // Search Keyword
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('item_name', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%")
-                  ->orWhere('supplier_name', 'like', "%{$search}%");
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('supplier_name', 'like', "%{$search}%");
             });
         }
 
@@ -61,14 +61,14 @@ class PurchaseOrderController extends Controller
         // -----------------------------------------------------------------
         // 2. RINGKASAN METRIK GENERAL & FINANCIAL FEE
         // -----------------------------------------------------------------
-        $totalNilaiPO   = $purchaseOrders->sum(fn($po) => $po->quantity * ($po->maker_price ?? 0));
+        $totalNilaiPO = $purchaseOrders->sum(fn ($po) => $po->quantity * ($po->maker_price ?? 0));
         $poPendingCount = $purchaseOrders->where('status_stage', '!=', 'Selesai')->count();
         $poSelesaiCount = $purchaseOrders->where('status_stage', 'Selesai')->count();
 
         // Fee Mitra, Supplier, dan KSPPG
-        $totalFeeMitra      = $purchaseOrders->sum('total_partner_fee');
+        $totalFeeMitra = $purchaseOrders->sum('total_partner_fee');
         $totalBayarSupplier = $purchaseOrders->sum('total_supplier_amount');
-        $totalFeeKSPPG      = $purchaseOrders->sum('total_ksppg_fee');
+        $totalFeeKSPPG = $purchaseOrders->sum('total_ksppg_fee');
 
         // -----------------------------------------------------------------
         // 3. QUERY ANALISA KEUNTUNGAN (POP-UP GAMBAR 2)
@@ -115,12 +115,12 @@ class PurchaseOrderController extends Controller
             ->first();
 
         return view('po.index', compact(
-            'purchaseOrders', 
-            'totalNilaiPO', 
-            'poPendingCount', 
+            'purchaseOrders',
+            'totalNilaiPO',
+            'poPendingCount',
             'poSelesaiCount',
-            'totalFeeMitra', 
-            'totalBayarSupplier', 
+            'totalFeeMitra',
+            'totalBayarSupplier',
             'totalFeeKSPPG',
             'topItem',
             'topCategory',
@@ -144,22 +144,22 @@ class PurchaseOrderController extends Controller
 
         $validated = $request->validate([
             'item_name' => 'required|string|max:255',
-            'quantity'  => 'required|numeric|min:0.1',
-            'unit'      => 'required|string|max:50',
+            'quantity' => 'required|numeric|min:0.1',
+            'unit' => 'required|string|max:50',
         ]);
 
         $poData = [
-            'po_number'  => 'PO-' . time(),
-            'item_name'  => $validated['item_name'],
-            'quantity'   => $validated['quantity'],
-            'unit'       => $validated['unit'],
-            'region'     => $user->isSuperAdmin() ? $request->input('region', 'Pusat') : $user->region,
+            'po_number' => 'PO-'.time(),
+            'item_name' => $validated['item_name'],
+            'quantity' => $validated['quantity'],
+            'unit' => $validated['unit'],
+            'region' => $user->isSuperAdmin() ? $request->input('region', 'Pusat') : $user->region,
             'created_by' => $user->id,
         ];
 
         if ($user->isSuperAdmin()) {
             $poData['supplier_fee'] = $request->input('supplier_fee', 0);
-            $poData['ksppg_fee']    = $request->input('ksppg_fee', 0);
+            $poData['ksppg_fee'] = $request->input('ksppg_fee', 0);
         }
 
         PurchaseOrder::create($poData);
@@ -182,7 +182,7 @@ class PurchaseOrderController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isSuperAdmin() && $po->region !== $user->region) {
+        if (! $user->isSuperAdmin() && $po->region !== $user->region) {
             abort(403, 'Anda tidak memiliki akses ke nota wilayah ini.');
         }
 

@@ -3,8 +3,8 @@
 Aplikasi pengelolaan purchase order dan operasional SPPG, termasuk perhitungan pembelian, kuantitas gudang, biaya, pembayaran, dan analisa keuntungan.
 
 <!-- APP-VERSION:START -->
-**Versi pencatatan:** `v0.1.17`  
-**Terakhir diperbarui:** 2026-10-31 17:50:04 WIB
+**Versi pencatatan:** `v0.1.18`  
+**Terakhir diperbarui:** 2026-11-07 12:40:04 WIB
 <!-- APP-VERSION:END -->
 
 ## Fitur utama
@@ -43,6 +43,7 @@ Ringkasan otomatis dibentuk dari file dan jenis perubahan. Ringkasan menjelaskan
 <!-- AUTO-UPDATES:START -->
 | Tanggal (WIB) | Versi | Update |
 | --- | --- | --- |
+| 2026-11-07 12:40:04 WIB | v0.1.18 | Update akun dan akses, pembelian dan gudang, pengujian dan 6 bagian lainnya (24 file; 24 diubah). <!-- snapshot:96460c2cdaf323bdc148a9f9eddd7355ca4d65766739b5e6351bf9ced5c2ac92 --> |
 | 2026-10-31 17:50:04 WIB | v0.1.17 | Update tampilan, pengujian, dashboard dan 1 bagian lainnya (12 file; 6 ditambah, 6 diubah). <!-- snapshot:0e9984f6e13074d08ddc9d9f41b8c48f03b131282ff495074ba0a96ed37d787c --> |
 | 2026-10-30 20:30:04 WIB | v0.1.16 | Update tampilan, akun dan akses, pengujian dan 12 bagian lainnya (69 file; 41 ditambah, 28 diubah). <!-- snapshot:f4bf5350bbce429671e333f66e912f5c3f93c4a4a817b57c93bf1ca42d1e8972 --> |
 | 2026-10-29 18:05:04 WIB | v0.1.15 | Update pengujian, tampilan, dashboard dan 3 bagian lainnya (10 file; 1 ditambah, 9 diubah). <!-- snapshot:368873731a6e6779eb9cad5226fdc929c84a25c9f8597fc43ff10d7c76cae846 --> |

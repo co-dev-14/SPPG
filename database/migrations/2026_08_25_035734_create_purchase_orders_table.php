@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('quantity', 10, 2);                        // 106.00
             $table->string('unit', 50)->default('Kg');                 // Kg, Pcs, Box
             $table->date('transaction_date');                          // Tanggal transaksi (misal: 2026-08-23)
-            
+
             // Status & Prioritas (Menggunakan STRING agar fleksibel)
             $table->string('priority')->default('Normal');             // Normal, High, Low, Urgent
             $table->string('status_stage')->default('Cari Supplier');  // Cari Supplier, Sortir, Pengiriman, Selesai, Retur, Kekurangan, Perubahan Item

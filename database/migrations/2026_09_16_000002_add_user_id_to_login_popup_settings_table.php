@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('login_popup_settings', 'user_id')) {
+        if (! Schema::hasColumn('login_popup_settings', 'user_id')) {
             Schema::table('login_popup_settings', function (Blueprint $table) {
                 $table->foreignId('user_id')->nullable()->unique()->constrained('users')->cascadeOnDelete();
             });

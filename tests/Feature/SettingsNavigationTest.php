@@ -21,8 +21,11 @@ class SettingsNavigationTest extends TestCase
                 ->assertSee(route('dashboard').'#katalog-buah', false)
                 ->assertSee('Pengaturan Akun')->assertSee('Konfirmasi Logout')
                 ->assertSee('data-sbg-logout', false);
-            if ($master) $response->assertSee(route('dashboard').'#master-data', false);
-            else $response->assertDontSee(route('dashboard').'#master-data', false);
+            if ($master) {
+                $response->assertSee(route('dashboard').'#master-data', false);
+            } else {
+                $response->assertDontSee(route('dashboard').'#master-data', false);
+            }
         }
     }
 }

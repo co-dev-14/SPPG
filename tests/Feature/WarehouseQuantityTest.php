@@ -14,6 +14,7 @@ class WarehouseQuantityTest extends TestCase
     private function payload(): array
     {
         $admin = User::factory()->create(['role' => 'admin', 'region' => 'Pusat']);
+
         return [
             'item_name' => 'Beras', 'category' => 'Karbo', 'unit' => 'Kg',
             'transaction_date' => '2026-09-27', 'created_by' => $admin->id,
@@ -32,8 +33,7 @@ class WarehouseQuantityTest extends TestCase
         $this->assertEquals(12.75, $po->quantity);
         $this->assertEquals(33000, $po->total_partner_fee);
         $this->assertEquals(127500, $po->quantity * $po->maker_price);
-        $this->get(route('dashboard'))->assertOk()->assertViewHas('summary', fn ($summary) =>
-            $summary['total_laba_mitra'] == 33000 && $summary['total_nilai_po'] == 127500);
+        $this->get(route('dashboard'))->assertOk()->assertViewHas('summary', fn ($summary) => $summary['total_laba_mitra'] == 33000 && $summary['total_nilai_po'] == 127500);
         foreach ([[0, 4, 40000], [3, 0, 3000]] as [$sbg, $b, $fee]) {
             $payload['quantity_sbg'] = $sbg;
             $payload['quantity_b'] = $b;
@@ -67,6 +67,7 @@ class WarehouseQuantityTest extends TestCase
         $this->put(route('dashboard.po.update', $po), $payload)->assertSessionHasNoErrors();
         $this->assertEquals(33000, $po->fresh()->total_partner_fee);
     }
+
     public function test_supplier_card_uses_only_sbg_and_payment_status(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'super_admin']));
@@ -82,8 +83,7 @@ class WarehouseQuantityTest extends TestCase
         $this->assertEquals(33000, $po->total_partner_fee);
         $this->assertEquals(127500, $po->quantity * $po->maker_price);
         $this->assertEquals(63000, $po->total_supplier_amount);
-        $this->get(route('dashboard'))->assertOk()->assertViewHas('summary', fn ($summary) =>
-            $summary['total_bayar_supplier'] == 63000);
+        $this->get(route('dashboard'))->assertOk()->assertViewHas('summary', fn ($summary) => $summary['total_bayar_supplier'] == 63000);
         $this->get(route('dashboard.po.show', $po))->assertOk()
             ->assertJsonPath('data.total_supplier_amount', 63000);
 
@@ -94,8 +94,7 @@ class WarehouseQuantityTest extends TestCase
             $this->assertEquals($sbg * 3000, $po->fresh()->total_ksppg_fee);
         }
         $this->post(route('dashboard.supplier.pay-all'), ['ids' => [$po->id]])->assertSessionHasNoErrors();
-        $this->get(route('dashboard'))->assertOk()->assertViewHas('summary', fn ($summary) =>
-            $summary['total_bayar_supplier'] == 0);
+        $this->get(route('dashboard'))->assertOk()->assertViewHas('summary', fn ($summary) => $summary['total_bayar_supplier'] == 0);
     }
 
     public function test_legacy_supplier_price_and_restricted_admin_edits(): void

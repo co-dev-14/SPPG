@@ -1,5 +1,7 @@
 <?php
+
 // app/Http/Middleware/CheckRole.php
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -12,7 +14,7 @@ class CheckRole
     {
         $user = $request->user();
 
-        if (!$user || !in_array($user->role, $roles)) {
+        if (! $user || ! in_array($user->role, $roles)) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 

@@ -14,10 +14,10 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'superadmin@sppg.com'],
             [
-                'name'     => 'Super Admin Utama',
+                'name' => 'Super Admin Utama',
                 'password' => Hash::make('password'),
-                'role'     => 'super_admin',
-                'region'   => 'Pusat',
+                'role' => 'super_admin',
+                'region' => 'Pusat',
             ]
         );
 
@@ -25,10 +25,10 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin.harpa2@sppg.com'],
             [
-                'name'     => 'Admin Dapur Harpa 2',
+                'name' => 'Admin Dapur Harpa 2',
                 'password' => Hash::make('password'),
-                'role'     => 'admin',
-                'region'   => 'Surabaya',
+                'role' => 'admin',
+                'region' => 'Surabaya',
             ]
         );
     }

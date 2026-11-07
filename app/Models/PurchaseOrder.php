@@ -44,17 +44,17 @@ class PurchaseOrder extends Model
      * Konversi tipe data otomatis (Casting).
      */
     protected $casts = [
-        'transaction_date'    => 'date',
-        'quantity'            => 'float',
-        'quantity_sbg'        => 'float',
-        'quantity_b'          => 'float',
-        'supplier_price'      => 'float',
-        'supplier_price_b'    => 'float',
-        'maker_price'         => 'float',
-        'partner_margin'      => 'float',
+        'transaction_date' => 'date',
+        'quantity' => 'float',
+        'quantity_sbg' => 'float',
+        'quantity_b' => 'float',
+        'supplier_price' => 'float',
+        'supplier_price_b' => 'float',
+        'maker_price' => 'float',
+        'partner_margin' => 'float',
         'is_partner_fee_paid' => 'boolean',
-        'is_supplier_paid'    => 'boolean',
-        'is_ksppg_fee_paid'   => 'boolean',
+        'is_supplier_paid' => 'boolean',
+        'is_ksppg_fee_paid' => 'boolean',
     ];
 
     /**
@@ -79,7 +79,7 @@ class PurchaseOrder extends Model
     }
 
     /* -------------------------------------------------------------------------- */
-    /*                                 RELASI                                     */
+    /*                                 RELASI */
     /* -------------------------------------------------------------------------- */
 
     /**
@@ -91,7 +91,7 @@ class PurchaseOrder extends Model
     }
 
     /* -------------------------------------------------------------------------- */
-    /*                                ACCESSORS                                   */
+    /*                                ACCESSORS */
     /* -------------------------------------------------------------------------- */
 
     /**
@@ -100,7 +100,7 @@ class PurchaseOrder extends Model
      */
     public function getKsppgMarginPerUnitAttribute()
     {
-        if (!$this->supplier_price) {
+        if (! $this->supplier_price) {
             return 0;
         }
 

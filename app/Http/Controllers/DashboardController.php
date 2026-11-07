@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PurchaseOrder;
 use App\Models\LoginPopupSetting;
+use App\Models\PurchaseOrder;
 use App\Models\Region;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -68,74 +69,74 @@ class DashboardController extends Controller
             ]);
 
             session([
-                'filter_region'    => $request->input('region'),
-                'filter_status'    => $request->input('status'),
-                'filter_priority'  => $request->input('priority'),
-                'filter_category'  => $request->input('category'),
-                'filter_search'    => $request->input('search'),
+                'filter_region' => $request->input('region'),
+                'filter_status' => $request->input('status'),
+                'filter_priority' => $request->input('priority'),
+                'filter_category' => $request->input('category'),
+                'filter_search' => $request->input('search'),
                 'filter_date_from' => $request->input('date_from'),
-                'filter_date_to'   => $request->input('date_to'),
+                'filter_date_to' => $request->input('date_to'),
             ]);
         }
 
         // 2. Ambil parameter filter dari Session
-        $sessionRegion   = session('filter_region');
-        $sessionStatus   = session('filter_status');
+        $sessionRegion = session('filter_region');
+        $sessionStatus = session('filter_status');
         $sessionPriority = session('filter_priority');
         $sessionCategory = session('filter_category');
-        $sessionSearch   = session('filter_search');
+        $sessionSearch = session('filter_search');
         $sessionDateFrom = session('filter_date_from');
-        $sessionDateTo   = session('filter_date_to');
+        $sessionDateTo = session('filter_date_to');
 
         // 3. Base Query
         $query = PurchaseOrder::with('creator');
         $regions = Region::query()
-            ->when(!$user->isSuperAdmin(), fn ($regionQuery) => $regionQuery->where('name', $user->region))
+            ->when(! $user->isSuperAdmin(), fn ($regionQuery) => $regionQuery->where('name', $user->region))
             ->orderBy('name', 'asc')
             ->get();
         $admins = User::query()
             ->whereIn('role', ['admin', 'kepala_dapur'])
-            ->when(!$user->isSuperAdmin(), fn ($adminQuery) => $adminQuery->where('region', $user->region))
+            ->when(! $user->isSuperAdmin(), fn ($adminQuery) => $adminQuery->where('region', $user->region))
             ->orderBy('name')
             ->get(['id', 'name', 'region']);
 
         // 4. Pembatasan Akses & Filter Wilayah
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             // Admin biasa terkunci ke wilayahnya sendiri
             $query->where('region', $user->region);
         } else {
             // Super Admin dapat menggunakan filter wilayah dari session
-            if (!empty($sessionRegion)) {
+            if (! empty($sessionRegion)) {
                 $query->where('region', $sessionRegion);
             }
         }
 
         // 5. Apply Filter Lainnya dari Session
-        if (!empty($sessionStatus)) {
+        if (! empty($sessionStatus)) {
             $query->where('status_stage', $sessionStatus);
         }
 
-        if (!empty($sessionPriority)) {
+        if (! empty($sessionPriority)) {
             $query->where('priority', $sessionPriority);
         }
 
-        if (!empty($sessionCategory)) {
+        if (! empty($sessionCategory)) {
             $query->where('category', $sessionCategory);
         }
 
-        if (!empty($sessionSearch)) {
+        if (! empty($sessionSearch)) {
             $query->where(function ($q) use ($sessionSearch) {
                 $q->where('po_number', 'like', "%{$sessionSearch}%")
-                ->orWhere('item_name', 'like', "%{$sessionSearch}%")
-                ->orWhere('supplier_name', 'like', "%{$sessionSearch}%");
+                    ->orWhere('item_name', 'like', "%{$sessionSearch}%")
+                    ->orWhere('supplier_name', 'like', "%{$sessionSearch}%");
             });
         }
 
-        if (!empty($sessionDateFrom)) {
+        if (! empty($sessionDateFrom)) {
             $query->whereDate('transaction_date', '>=', $sessionDateFrom);
         }
 
-        if (!empty($sessionDateTo)) {
+        if (! empty($sessionDateTo)) {
             $query->whereDate('transaction_date', '<=', $sessionDateTo);
         }
 
@@ -153,16 +154,16 @@ class DashboardController extends Controller
             'ui_po_value' => $po->quantity * $po->maker_price,
         ])->values();
         $summary = [
-            'total_po'             => $allFetchedPO->count(),
-            'po_pending'           => $allFetchedPO->where('status_stage', 'Pending')->count(),
-            'po_selesai'           => $allFetchedPO->where('status_stage', 'Selesai')->count(),
-            'total_nilai_po'       => $allFetchedPO->sum(function($po) {
-                                        return $po->quantity * $po->maker_price; // kalkulasi total nilai PO
-                                    }),
+            'total_po' => $allFetchedPO->count(),
+            'po_pending' => $allFetchedPO->where('status_stage', 'Pending')->count(),
+            'po_selesai' => $allFetchedPO->where('status_stage', 'Selesai')->count(),
+            'total_nilai_po' => $allFetchedPO->sum(function ($po) {
+                return $po->quantity * $po->maker_price; // kalkulasi total nilai PO
+            }),
             // Ringkasan keuangan menampilkan sisa yang belum dibayarkan.
             'total_bayar_supplier' => $allFetchedPO->where('is_supplier_paid', false)->sum('total_supplier_amount'),
-            'total_laba_mitra'     => $allFetchedPO->where('is_partner_fee_paid', false)->sum('total_partner_fee'),
-            'total_laba_ksppg'     => $allFetchedPO->where('is_ksppg_fee_paid', false)->sum('total_ksppg_fee'),
+            'total_laba_mitra' => $allFetchedPO->where('is_partner_fee_paid', false)->sum('total_partner_fee'),
+            'total_laba_ksppg' => $allFetchedPO->where('is_ksppg_fee_paid', false)->sum('total_ksppg_fee'),
         ];
 
         $popupPerUserReady = Schema::hasColumn('login_popup_settings', 'user_id');
@@ -212,28 +213,28 @@ class DashboardController extends Controller
         $this->normalizeWarehouseQuantities($request);
 
         $validated = $request->validate([
-            'item_name'        => 'required|string|max:255',
-            'category'         => 'required|string|in:Karbo,Protein Nabati,Protein Hewani,Sayur,Buah',
-            'quantity'         => 'required|numeric|min:0.01|max:99999999.99',
-            'quantity_sbg'     => 'sometimes|required|numeric|min:0|max:99999999.99',
-            'quantity_b'       => 'sometimes|required|numeric|min:0|max:99999999.99',
-            'unit'             => 'required|string|max:50',
+            'item_name' => 'required|string|max:255',
+            'category' => 'required|string|in:Karbo,Protein Nabati,Protein Hewani,Sayur,Buah',
+            'quantity' => 'required|numeric|min:0.01|max:99999999.99',
+            'quantity_sbg' => 'sometimes|required|numeric|min:0|max:99999999.99',
+            'quantity_b' => 'sometimes|required|numeric|min:0|max:99999999.99',
+            'unit' => 'required|string|max:50',
             'transaction_date' => 'required|date',
-            'created_by'       => 'required|integer|exists:users,id',
-            'priority'         => 'required|string|in:Urgent,High,Normal,Low,Tinggi,Rendah',
-            'status_stage'     => 'required|string|in:Cari Supplier,Sortir,Pengiriman,Selesai,Retur,Kekurangan,Perubahan Item',
-            'supplier_name'    => 'nullable|string|max:255',
-            'supplier_price'   => 'nullable|numeric|min:0',
+            'created_by' => 'required|integer|exists:users,id',
+            'priority' => 'required|string|in:Urgent,High,Normal,Low,Tinggi,Rendah',
+            'status_stage' => 'required|string|in:Cari Supplier,Sortir,Pengiriman,Selesai,Retur,Kekurangan,Perubahan Item',
+            'supplier_name' => 'nullable|string|max:255',
+            'supplier_price' => 'nullable|numeric|min:0',
             'supplier_price_b' => 'nullable|numeric|min:0',
-            'maker_price'      => 'nullable|numeric|min:0',
-            'partner_margin'   => 'nullable|numeric|min:0',
-            'region'           => 'nullable|exists:regions,name',
-            'notes'            => 'nullable|string',
+            'maker_price' => 'nullable|numeric|min:0',
+            'partner_margin' => 'nullable|numeric|min:0',
+            'region' => 'nullable|exists:regions,name',
+            'notes' => 'nullable|string',
         ]);
 
         $managedAdmin = $this->resolveManagedAdmin($validated['created_by'], $user);
 
-        $validated['po_number'] = 'PO-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+        $validated['po_number'] = 'PO-'.date('Ymd').'-'.strtoupper(Str::random(4));
         $validated['region'] = $managedAdmin->region;
 
         // Harga supplier hanya boleh ditentukan oleh super admin. Jangan percaya
@@ -257,12 +258,12 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => array_merge($purchaseOrder->toArray(), [
+            'data' => array_merge($purchaseOrder->toArray(), [
                 'total_supplier_amount' => $purchaseOrder->total_supplier_amount,
-                'total_partner_fee'     => $purchaseOrder->total_partner_fee,
-                'ksppg_fee_per_unit'    => $purchaseOrder->ksppg_fee_per_unit,
-                'total_ksppg_fee'       => $purchaseOrder->total_ksppg_fee,
-                'formatted_date'        => $purchaseOrder->transaction_date ? $purchaseOrder->transaction_date->translatedFormat('l, d F Y') : '-',
+                'total_partner_fee' => $purchaseOrder->total_partner_fee,
+                'ksppg_fee_per_unit' => $purchaseOrder->ksppg_fee_per_unit,
+                'total_ksppg_fee' => $purchaseOrder->total_ksppg_fee,
+                'formatted_date' => $purchaseOrder->transaction_date ? $purchaseOrder->transaction_date->translatedFormat('l, d F Y') : '-',
             ]),
         ]);
     }
@@ -285,16 +286,16 @@ class DashboardController extends Controller
     public function createPaymentVerificationLink(Request $request)
     {
         $validated = $request->validate([
-            'items'   => 'required|array|min:1',
+            'items' => 'required|array|min:1',
             'items.*' => 'required|integer|distinct|exists:purchase_orders,id',
             'type' => 'required|in:partner_fee,supplier,ksppg_fee',
         ]);
 
-        abort_if($validated['type'] !== 'partner_fee' && !Auth::user()->canManageFinancials(), 403);
+        abort_if($validated['type'] !== 'partner_fee' && ! Auth::user()->canManageFinancials(), 403);
 
         $query = PurchaseOrder::query()->whereIn('id', $validated['items']);
 
-        if (!Auth::user()->isSuperAdmin()) {
+        if (! Auth::user()->isSuperAdmin()) {
             $query->where('region', Auth::user()->region);
         }
 
@@ -371,22 +372,22 @@ class DashboardController extends Controller
         $this->normalizeWarehouseQuantities($request);
 
         $validated = $request->validate([
-            'item_name'        => 'required|string|max:255',
-            'category'         => 'required|string|in:Karbo,Protein Nabati,Protein Hewani,Sayur,Buah',
-            'quantity'         => 'required|numeric|min:0.01|max:99999999.99',
-            'quantity_sbg'     => 'sometimes|required|numeric|min:0|max:99999999.99',
-            'quantity_b'       => 'sometimes|required|numeric|min:0|max:99999999.99',
-            'unit'             => 'required|string|max:50',
+            'item_name' => 'required|string|max:255',
+            'category' => 'required|string|in:Karbo,Protein Nabati,Protein Hewani,Sayur,Buah',
+            'quantity' => 'required|numeric|min:0.01|max:99999999.99',
+            'quantity_sbg' => 'sometimes|required|numeric|min:0|max:99999999.99',
+            'quantity_b' => 'sometimes|required|numeric|min:0|max:99999999.99',
+            'unit' => 'required|string|max:50',
             'transaction_date' => 'required|date',
-            'created_by'       => 'required|integer|exists:users,id',
-            'priority'         => 'required|string|in:Urgent,High,Normal,Low,Tinggi,Rendah',
-            'status_stage'     => 'required|string|in:Cari Supplier,Sortir,Pengiriman,Selesai,Retur,Kekurangan,Perubahan Item',
-            'supplier_name'    => 'nullable|string|max:255',
-            'supplier_price'   => 'nullable|numeric|min:0',
+            'created_by' => 'required|integer|exists:users,id',
+            'priority' => 'required|string|in:Urgent,High,Normal,Low,Tinggi,Rendah',
+            'status_stage' => 'required|string|in:Cari Supplier,Sortir,Pengiriman,Selesai,Retur,Kekurangan,Perubahan Item',
+            'supplier_name' => 'nullable|string|max:255',
+            'supplier_price' => 'nullable|numeric|min:0',
             'supplier_price_b' => 'nullable|numeric|min:0',
-            'maker_price'      => 'nullable|numeric|min:0',
-            'partner_margin'   => 'nullable|numeric|min:0',
-            'notes'            => 'nullable|string',
+            'maker_price' => 'nullable|numeric|min:0',
+            'partner_margin' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string',
         ]);
 
         $managedAdmin = $this->resolveManagedAdmin($validated['created_by'], $user);
@@ -404,7 +405,7 @@ class DashboardController extends Controller
         DB::transaction(function () use ($request, $purchaseOrder, $validated) {
             $current = PurchaseOrder::whereKey($purchaseOrder->getKey())->lockForUpdate()->firstOrFail();
             if ($request->filled('updated_at')) {
-                $expected = \Illuminate\Support\Carbon::parse($request->input('updated_at'));
+                $expected = Carbon::parse($request->input('updated_at'));
                 abort_unless($current->updated_at->equalTo($expected), 409,
                     'PO telah diperbarui oleh pengguna lain. Salin perubahan Anda, lalu tutup dan buka kembali PO.');
             }
@@ -418,8 +419,10 @@ class DashboardController extends Controller
 
         if ($request->expectsJson()) {
             session()->flash('success', 'Purchase Order berhasil diperbarui.');
+
             return response()->json(['success' => true]);
         }
+
         return redirect()->back()->with('success', 'Purchase Order berhasil diperbarui.');
     }
 
@@ -439,11 +442,11 @@ class DashboardController extends Controller
         $type = $request->payment_type;
 
         if ($type === 'partner_fee') {
-            $purchaseOrder->is_partner_fee_paid = !$purchaseOrder->is_partner_fee_paid;
+            $purchaseOrder->is_partner_fee_paid = ! $purchaseOrder->is_partner_fee_paid;
         } elseif ($type === 'supplier') {
-            $purchaseOrder->is_supplier_paid = !$purchaseOrder->is_supplier_paid;
+            $purchaseOrder->is_supplier_paid = ! $purchaseOrder->is_supplier_paid;
         } elseif ($type === 'ksppg_fee') {
-            $purchaseOrder->is_ksppg_fee_paid = !$purchaseOrder->is_ksppg_fee_paid;
+            $purchaseOrder->is_ksppg_fee_paid = ! $purchaseOrder->is_ksppg_fee_paid;
         }
 
         $purchaseOrder->save();
@@ -455,7 +458,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isSuperAdmin() && !$user->isKepalaDapur()) {
+        if (! $user->isSuperAdmin() && ! $user->isKepalaDapur()) {
             abort(403, 'Anda tidak memiliki akses untuk menambah akun.');
         }
 
@@ -463,25 +466,25 @@ class DashboardController extends Controller
         if ($user->isKepalaDapur()) {
             $request->merge([
                 'create_new_region' => 0,
-                'region'            => $user->region,
-                'account_role'      => 'admin',
+                'region' => $user->region,
+                'account_role' => 'admin',
             ]);
         }
 
         $validated = $request->validate([
             'create_new_region' => 'nullable|boolean',
-            'region'            => 'required_unless:create_new_region,1|nullable|exists:regions,name',
-            'region_name'       => 'required_if:create_new_region,1|nullable|string|max:255|unique:regions,name',
-            'region_code'       => 'nullable|string|max:50|unique:regions,code',
-            'admin_name'        => 'required|string|max:255',
-            'account_role'      => 'required|in:admin,kepala_dapur',
-            'email'             => 'required|email|unique:users,email',
-            'password'          => 'required|string|min:6',
+            'region' => 'required_unless:create_new_region,1|nullable|exists:regions,name',
+            'region_name' => 'required_if:create_new_region,1|nullable|string|max:255|unique:regions,name',
+            'region_code' => 'nullable|string|max:50|unique:regions,code',
+            'admin_name' => 'required|string|max:255',
+            'account_role' => 'required|in:admin,kepala_dapur',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
         ]);
 
         // DB Transaction agar jika salah satu gagal, keduanya dibatalkan (atomic)
         DB::transaction(function () use ($validated) {
-            if (!empty($validated['create_new_region'])) {
+            if (! empty($validated['create_new_region'])) {
                 $region = Region::create([
                     'name' => $validated['region_name'],
                     'code' => $validated['region_code'] ?? strtoupper(substr($validated['region_name'], 0, 4)),
@@ -492,11 +495,11 @@ class DashboardController extends Controller
 
             // Buat akun baru dan hubungkan ke daerah yang dipilih/dibuat.
             User::create([
-                'name'     => $validated['admin_name'],
-                'email'    => $validated['email'],
+                'name' => $validated['admin_name'],
+                'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'role'     => $validated['account_role'],
-                'region'   => $region->name,
+                'role' => $validated['account_role'],
+                'region' => $region->name,
             ]);
         });
 
@@ -509,7 +512,7 @@ class DashboardController extends Controller
 
         $request->validate([
             'account_role' => 'required|in:admin,kepala_dapur',
-            'account_id'   => 'required|integer|exists:users,id',
+            'account_id' => 'required|integer|exists:users,id',
         ]);
 
         $region = Region::findOrFail($id);
@@ -532,10 +535,15 @@ class DashboardController extends Controller
                 'role' => $request->account_role,
                 'region' => $validated['name'],
             ];
-            if ($request->filled('password')) $userData['password'] = Hash::make($validated['password']);
+            if ($request->filled('password')) {
+                $userData['password'] = Hash::make($validated['password']);
+            }
             $admin->update($userData);
         });
-        if ($request->expectsJson()) return response()->json(['success' => true]);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Data region dan admin berhasil diperbarui');
     }
 
@@ -554,23 +562,26 @@ class DashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'admin_name'  => 'required|string|max:255',
-            'admin_email' => 'required|email|unique:users,email,' . $account->id,
-            'password'    => 'nullable|string|min:6',
+            'admin_name' => 'required|string|max:255',
+            'admin_email' => 'required|email|unique:users,email,'.$account->id,
+            'password' => 'nullable|string|min:6',
         ]);
 
         $accountData = [
-            'name'  => $validated['admin_name'],
+            'name' => $validated['admin_name'],
             'email' => $validated['admin_email'],
         ];
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $accountData['password'] = Hash::make($validated['password']);
         }
 
         $account->update($accountData);
 
-        if ($request->expectsJson()) return response()->json(['success' => true]);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Akun Admin berhasil diperbarui.');
     }
 
@@ -652,7 +663,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isSuperAdmin() && $purchaseOrder->region !== $user->region) {
+        if (! $user->isSuperAdmin() && $purchaseOrder->region !== $user->region) {
             abort(403, 'Anda tidak memiliki akses ke data Purchase Order wilayah ini.');
         }
     }
@@ -663,13 +674,13 @@ class DashboardController extends Controller
             ->whereKey($adminId)
             ->whereIn('role', ['admin', 'kepala_dapur']);
 
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $adminQuery->where('region', $user->region);
         }
 
         $admin = $adminQuery->first();
 
-        if (!$admin) {
+        if (! $admin) {
             throw ValidationException::withMessages([
                 'created_by' => 'Penanggung jawab yang dipilih tidak valid untuk wilayah ini.',
             ]);
@@ -680,7 +691,7 @@ class DashboardController extends Controller
 
     private function normalizeWarehouseQuantities(Request $request): void
     {
-        if (!$request->hasAny(['quantity_sbg', 'quantity_b'])) {
+        if (! $request->hasAny(['quantity_sbg', 'quantity_b'])) {
             return;
         }
 
@@ -724,12 +735,12 @@ class DashboardController extends Controller
             ->whereBetween('transaction_date', [$year.'-01-01', $year.'-12-31'])
             ->whereDate('transaction_date', '<=', today());
         foreach (['category', 'region'] as $field) {
-            if (!empty($filters[$field])) {
+            if (! empty($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }
         }
         $items = (clone $query)->distinct()->orderBy('item_name')->pluck('item_name');
-        if (!empty($filters['item'])) {
+        if (! empty($filters['item'])) {
             $query->where('item_name', $filters['item']);
         }
         $groups = [];
@@ -747,10 +758,11 @@ class DashboardController extends Controller
             };
             if ($quantity <= 0 || $price <= 0) {
                 $excluded++;
+
                 continue;
             }
             $key = json_encode([$po->item_name, $po->category, $po->unit]);
-            if (!isset($groups[$key])) {
+            if (! isset($groups[$key])) {
                 $groups[$key] = ['item' => $po->item_name, 'category' => $po->category, 'unit' => $po->unit, 'buckets' => []];
             }
             $month = (int) $po->transaction_date->month;
@@ -792,6 +804,7 @@ class DashboardController extends Controller
             ];
         }
         usort($rows, fn ($a, $b) => [$a['item'], $a['unit']] <=> [$b['item'], $b['unit']]);
+
         return response()->json([
             'rows' => $rows, 'items' => $items, 'year' => $year, 'source' => $source,
             'excluded' => $excluded,
@@ -808,20 +821,20 @@ class DashboardController extends Controller
 
         // Rentang tanggal memakai tanggal PO, termasuk hari ini dan tanpa PO masa depan.
         $startDate = match ($filter) {
-            'week'     => today()->startOfWeek(),
-            'month'    => today()->startOfMonth(),
-            '3months'  => today()->subMonths(3)->startOfDay(),
-            'all'      => null,
+            'week' => today()->startOfWeek(),
+            'month' => today()->startOfMonth(),
+            '3months' => today()->subMonths(3)->startOfDay(),
+            'all' => null,
         };
 
         $query = PurchaseOrder::query();
 
         // Otorisasi Akses Wilayah (Sama seperti logika index)
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $query->where('region', $user->region);
         } else {
             $sessionRegion = session('filter_region');
-            if (!empty($sessionRegion)) {
+            if (! empty($sessionRegion)) {
                 $query->where('region', $sessionRegion);
             }
         }
@@ -880,19 +893,19 @@ class DashboardController extends Controller
                 'total' => (float) $category->total_fee,
             ])->values(),
             'topItem' => [
-                'name'  => $bestItem->item_name ?? '-',
+                'name' => $bestItem->item_name ?? '-',
                 'total' => (float) ($bestItem->total_fee ?? 0),
             ],
             'topCategory' => [
-                'name'  => $topCategories->first()?->category ?: '-',
+                'name' => $topCategories->first()?->category ?: '-',
                 'total' => (float) ($topCategories->first()?->total_fee ?? 0),
             ],
             'bestItem' => [
-                'name'  => $bestItem->item_name ?? '-',
+                'name' => $bestItem->item_name ?? '-',
                 'total' => (float) ($bestItem->total_fee ?? 0),
             ],
             'worstItem' => [
-                'name'  => $worstItem->item_name ?? '-',
+                'name' => $worstItem->item_name ?? '-',
                 'total' => (float) ($worstItem->total_fee ?? 0),
             ],
         ]);

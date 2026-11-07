@@ -1,9 +1,11 @@
 <?php
+
 namespace Tests\Feature;
 
 use App\Models\PurchaseOrder;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class SbgV25PoTest extends TestCase
@@ -13,6 +15,7 @@ class SbgV25PoTest extends TestCase
     private function payload(): array
     {
         $admin = User::factory()->create(['role' => 'admin', 'region' => 'Pusat']);
+
         return ['item_name' => 'Cavendish sintetis', 'category' => 'Buah', 'priority' => 'Normal',
             'transaction_date' => '2026-10-29', 'created_by' => $admin->id, 'status_stage' => 'Cari Supplier',
             'quantity_sbg' => 10.5, 'quantity_b' => 2.25, 'unit' => 'Kg', 'supplier_name' => 'Supplier sintetis',
@@ -53,28 +56,33 @@ class SbgV25PoTest extends TestCase
         $this->actingAs($super)->post(route('dashboard.po.store'), $payload)->assertSessionHasNoErrors();
         $po = PurchaseOrder::firstOrFail();
         $json = $this->getJson(route('dashboard.po.show', $po))->assertOk();
-        foreach (['item_name','category','priority','created_by','quantity_sbg','quantity_b','unit','supplier_name','notes','status_stage'] as $field) {
+        foreach (['item_name', 'category', 'priority', 'created_by', 'quantity_sbg', 'quantity_b', 'unit', 'supplier_name', 'notes', 'status_stage'] as $field) {
             $json->assertJsonPath('data.'.$field, $payload[$field]);
         }
         $json->assertJsonPath('data.supplier_price_b', 7500.5)->assertJsonPath('data.maker_price', 10000);
         $this->assertStringStartsWith('2026-10-29', $json->json('data.transaction_date'));
         $this->assertNotEmpty($json->json('data.updated_at'));
-        foreach (['super_admin','kepala_dapur','admin'] as $role) {
+        foreach (['super_admin', 'kepala_dapur', 'admin'] as $role) {
             $user = User::factory()->create(['role' => $role, 'region' => 'Pusat']);
             $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
             preg_match_all('/<form[^>]*data-po-form.*?<\/form>/s', $html, $forms);
             $this->assertCount(2, $forms[0]);
             foreach ($forms[0] as $form) {
-                foreach (['transaction_date','category','priority','item_name','quantity_sbg','quantity_b','unit','maker_price','partner_margin','status_stage','notes'] as $field) $this->assertStringContainsString('name="'.$field.'"', $form);
-                foreach (['created_by','supplier_name','supplier_price','supplier_price_b'] as $field) {
-                    if ($role === 'admin') $this->assertStringNotContainsString('name="'.$field.'"', $form);
-                    else $this->assertStringContainsString('name="'.$field.'"', $form);
+                foreach (['transaction_date', 'category', 'priority', 'item_name', 'quantity_sbg', 'quantity_b', 'unit', 'maker_price', 'partner_margin', 'status_stage', 'notes'] as $field) {
+                    $this->assertStringContainsString('name="'.$field.'"', $form);
+                }
+                foreach (['created_by', 'supplier_name', 'supplier_price', 'supplier_price_b'] as $field) {
+                    if ($role === 'admin') {
+                        $this->assertStringNotContainsString('name="'.$field.'"', $form);
+                    } else {
+                        $this->assertStringContainsString('name="'.$field.'"', $form);
+                    }
                 }
             }
         }
         $admin = User::findOrFail($payload['created_by']);
         $this->actingAs($admin)->put(route('dashboard.po.update', $po), array_replace($payload, ['supplier_price' => '999.999', 'supplier_price_b' => '999.999', 'supplier_name' => 'Injected']))->assertSessionHasNoErrors();
-        $this->assertEquals([6000,7500.5,'Supplier sintetis'], [$po->refresh()->supplier_price,$po->supplier_price_b,$po->supplier_name]);
+        $this->assertEquals([6000, 7500.5, 'Supplier sintetis'], [$po->refresh()->supplier_price, $po->supplier_price_b, $po->supplier_name]);
         $this->actingAs(User::factory()->create(['role' => 'admin', 'region' => 'Luar']))->getJson(route('dashboard.po.show', $po))->assertForbidden();
         $this->putJson(route('dashboard.po.update', $po), $payload)->assertForbidden();
     }
@@ -89,10 +97,10 @@ class SbgV25PoTest extends TestCase
         unset($bad['quantity_b']);
         $this->putJson(route('dashboard.po.update', $po), $bad)->assertUnprocessable()->assertJsonValidationErrors('quantity_b');
         $this->putJson(route('dashboard.po.update', $po), array_replace($payload, ['status_stage' => 'Draft']))->assertUnprocessable()->assertJsonValidationErrors('status_stage');
-        $this->putJson(route('dashboard.po.update', $po), array_replace($payload, ['quantity_sbg'=>0,'quantity_b'=>0]))->assertUnprocessable()->assertJsonValidationErrors('quantity');
+        $this->putJson(route('dashboard.po.update', $po), array_replace($payload, ['quantity_sbg' => 0, 'quantity_b' => 0]))->assertUnprocessable()->assertJsonValidationErrors('quantity');
         $this->assertSame('Cari Supplier', $po->refresh()->status_stage);
         $this->assertEquals(12.75, $po->quantity);
-        $this->from(route('dashboard'))->put(route('dashboard.po.update', $po), array_replace($payload, ['_sbg_edit' => $po->id, 'item_name'=>'', 'notes'=>'Catatan jangan hilang']))->assertRedirect(route('dashboard'))->assertSessionHasErrors('item_name');
+        $this->from(route('dashboard'))->put(route('dashboard.po.update', $po), array_replace($payload, ['_sbg_edit' => $po->id, 'item_name' => '', 'notes' => 'Catatan jangan hilang']))->assertRedirect(route('dashboard'))->assertSessionHasErrors('item_name');
         $this->withCookie(config('session.cookie'), session()->getId())->get(route('dashboard'))->assertOk()->assertSee('isEditModalOpen: true', false)->assertSee('Catatan jangan hilang')->assertSee('data-server-errors', false);
         $this->assertDatabaseCount('purchase_orders', 1);
     }
@@ -150,7 +158,7 @@ assert.equal(submitted, true);
 assert.equal(form.busy, true);
 })().catch(e => {console.error(e); process.exit(1);});
 JS;
-        $process = new \Symfony\Component\Process\Process(['node', '-e', $script], base_path());
+        $process = new Process(['node', '-e', $script], base_path());
         $process->setTimeout(10)->run();
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
     }
@@ -201,7 +209,7 @@ form.requestClose();
 assert.equal(form.isEditModalOpen, false);
 assert.equal(focusReturned, true);
 JS;
-        $process = new \Symfony\Component\Process\Process(['node', '-e', $script], base_path());
+        $process = new Process(['node', '-e', $script], base_path());
         $process->setTimeout(10)->run();
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
     }
